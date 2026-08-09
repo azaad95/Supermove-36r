@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradingView v6 Live Indicator Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightweight-charts/4.1.0/lightweight-charts.standalone.production.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #131722;
+            --bg-secondary: #1e222d;
+            --bg-tertiary: #262b38;
+            --border: #363c47;
+            --text-primary: #d1d5db;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --green: #26a69a;
+            --red: #f23645;
+            --blue: #2962ff;
+            --orange: #ff9800;
+            --gray: #808080;
+            --accent: #1f78d2;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .header-info {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--green);
+            font-weight: 600;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .selector, .btn-small {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .selector:hover, .btn-small:hover {
+            background: var(--border);
+            border-color: var(--accent);
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .grid-main {
+            display: grid;
+            grid-template-columns: 1.8fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 1400px) {
+            .grid-main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-header {
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .price-display {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .price-info {
+            text-align: right;
+        }
+
+        .current-price {
+            font-size: 20px;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+            transition: all 0.2s;
+        }
+
+        .current-price.price-up {
+            color: var(--green);
+        }
+
+        .current-price.price-down {
+            color: var(--red);
+        }
+
+        .price-change {
+            font-size: 12px;
+            margin-top: 4px;
+            transition: all 0.2s;
+        }
+
+        .price-change.up {
+            color: var(--green);
+        }
+
+        .price-change.down {
+            color: var(--red);
+        }
+
+        .chart-container {
+            flex: 1;
+            position: relative;
+            height: 450px;
+            padding: 12px;
+        }
+
+        .tv-chart {
+            width: 100%;
+            height: 100%;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-body {
+            padding: 16px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+        }
+
+        .row:last-child {
+            border-bottom: none;
+        }
+
+        .label {
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .value {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-align: right;
+            transition: all 0.2s;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .badge-buy {
+            background: rgba(38, 166, 154, 0.2);
+            color: var(--green);
+        }
+
+        .badge-sell {
+            background: rgba(242, 54, 69, 0.2);
+            color: var(--red);
+        }
+
+        .badge-neutral {
+            background: rgba(128, 128, 128, 0.2);
+            color: var(--text-muted);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 12px 0;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pair-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .pair-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .pair-card:hover {
+            border-color: var(--accent);
+            background: var(--bg-tertiary);
+        }
+
+        .pair-card.active {
+            border-color: var(--accent);
+            background: rgba(31, 120, 210, 0.1);
+        }
+
+        .pair-name {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .pair-price {
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 6px;
+            transition: all 0.2s;
+        }
+
+        .pair-change {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .pair-change.up {
+            color: var(--green);
+        }
+
+        .pair-change.down {
+            color: var(--red);
+        }
+
+        .mini-chart {
+            width: 100%;
+            height: 30px;
+            margin-top: 6px;
+        }
+
+        .heatmap {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            color: white;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.05);
+        }
+
+        .heat-cold {
+            background: linear-gradient(135deg, #f23645, #ff9800);
+        }
+
+        .heat-warm {
+            background: linear-gradient(135deg, #ff9800, #2962ff);
+        }
+
+        .heat-hot {
+            background: linear-gradient(135deg, #2962ff, #26a69a);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+            color: var(--text-primary);
+        }
+
+        .indicator-chart {
+            height: 200px;
+            margin-top: 12px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 11px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+
+        .news-item {
+            background: var(--bg-tertiary);
+            border-left: 3px solid var(--orange);
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .news-item.high {
+            border-left-color: var(--red);
+        }
+
+        .news-time {
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .news-text {
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .streaming-box {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 12px;
+        }
+
+        .stream-line {
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(54, 60, 71, 0.5);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-10px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .stream-up {
+            color: var(--green);
+        }
+
+        .stream-down {
+            color: var(--red);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>TradingView v6 Live Indicator Dashboard</h1>
+        </div>
+        <div class="header-info">
+            <div class="live-indicator">
+                <span class="live-dot"></span>
+                LIVE STREAMING
+            </div>
+            <div id="timeDisplay">00:00:00 UTC</div>
+        </div>
+        <div class="toolbar">
+            <select class="selector" id="pairSelector" onchange="switchPair(this.value)">
+                <option value="EURUSD">EUR/USD</option>
+                <option value="GBPUSD">GBP/USD</option>
+                <option value="USDJPY">USD/JPY</option>
+                <option value="AUDUSD">AUD/USD</option>
+            </select>
+            <select class="selector" id="timeframeSelector">
+                <option value="1m">1M</option>
+                <option value="5m">5M</option>
+                <option value="15m">15M</option>
+                <option value="1h" selected>1H</option>
+                <option value="4h">4H</option>
+                <option value="1d">1D</option>
+            </select>
+            <button class="btn-small" onclick="exportData()">📊 Export</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Pair Selector -->
+        <div style="margin-bottom: 20px;">
+            <div class="pair-grid" id="pairGrid">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+
+        <!-- Live Statistics -->
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Current Price</div>
+                <div class="stat-value" id="statPrice">1.0895</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">24H Change</div>
+                <div class="stat-value" id="statChange" style="color: var(--green);">+0.45%</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">24H High</div>
+                <div class="stat-value" id="statHigh">1.0945</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">24H Low</div>
+                <div class="stat-value" id="statLow">1.0850</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Spread (pips)</div>
+                <div class="stat-value" id="statSpread">1.2</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Volume (M)</div>
+                <div class="stat-value" id="statVolume">2.4M</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(event, 'chart-tab')">Charts</button>
+            <button class="tab-btn" onclick="switchTab(event, 'indicators-tab')">Indicators</button>
+            <button class="tab-btn" onclick="switchTab(event, 'heatmap-tab')">Heatmap</button>
+            <button class="tab-btn" onclick="switchTab(event, 'news-tab')">Economic News</button>
+            <button class="tab-btn" onclick="switchTab(event, 'stream-tab')">Live Stream</button>
+        </div>
+
+        <!-- Charts Tab -->
+        <div id="chart-tab" class="tab-content active">
+            <div class="grid-main">
+                <div class="chart-section">
+                    <div class="chart-header">
+                        <div class="chart-title" id="chartTitle">EUR/USD - 1H Chart</div>
+                        <div class="price-display">
+                            <div class="price-info">
+                                <div class="current-price" id="currentPrice">1.0895</div>
+                                <div class="price-change up" id="priceChangePercent">+0.45%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="tv-chart" id="chart"></div>
+                    </div>
+                </div>
+
+                <div class="sidebar">
+                    <div class="panel">
+                        <div class="panel-header">
+                            Market Info
+                            <span id="marketStatus" style="color: var(--green);">● LIVE</span>
+                        </div>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="label">Trend</div>
+                                <div class="value">↑ Bullish <span class="badge badge-buy">BUY</span></div>
+                            </div>
+                            <div class="row">
+                                <div class="label">Momentum</div>
+                                <div class="value">Strong <span class="badge badge-buy">+</span></div>
+                            </div>
+                            <div class="row">
+                                <div class="label">Volatility (ATR)</div>
+                                <div class="value">45 pips</div>
+                            </div>
+                            <div class="row">
+                                <div class="label">Bid</div>
+                                <div class="value" id="bidPrice">1.08940</div>
+                            </div>
+                            <div class="row">
+                                <div class="label">Ask</div>
+                                <div class="value" id="askPrice">1.08960</div>
+                            </div>
+                            <div class="row">
+                                <div class="label">Support</div>
+                                <div class="value">1.0850</div>
+                            </div>
+                            <div class="row">
+                                <div class="label">Resistance</div>
+                                <div class="value">1.0950</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">Session Info</div>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="label">Session</div>
+                                <div class="value" id="sessionName">London</div>
+                            </div>
+                            <div class="row">
+                                <div class="label">Time to Close</div>
+                                <div class="value" id="timeToClose">2h 45m</div>
+                            </div>
+                            <div class="row">
+                                <div class="label">Open Interest</div>
+                                <div class="value">1.2M</div>
+                            </div>
+                            <div class="row">
+                                <div class="label">Last Update</div>
+                                <div class="value" id="lastUpdate" style="color: var(--green);">Just now</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Indicators Tab -->
+        <div id="indicators-tab" class="tab-content">
+            <div class="grid-main">
+                <div class="chart-section">
+                    <div class="chart-header">
+                        <div class="chart-title">RSI (14) - Real-time</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="rsiChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="sidebar">
+                    <div class="panel">
+                        <div class="panel-header">Indicator Signals</div>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="label">RSI (14)</div>
+                                <div class="value">
+                                    <span id="rsiValue">52.3</span>
+                                    <span class="badge badge-neutral">NEUTRAL</span>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="label">MACD</div>
+                                <div class="value">
+                                    <span id="macdValue">+0.045</span>
+                                    <span class="badge badge-buy">BUY</span>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="label">Stochastic</div>
+                                <div class="value">
+                                    <span id="stochValue">68.5</span>
+                                    <span class="badge badge-neutral">MID</span>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="label">Bollinger Bands</div>
+                                <div class="value">
+                                    <span id="bbValue">Mid</span>
+                                    <span class="badge badge-neutral">RANGE</span>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="label">ADX (14)</div>
+                                <div class="value">
+                                    <span id="adxValue">38.2</span>
+                                    <span class="badge badge-buy">STRONG</span>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="label">CCI (20)</div>
+                                <div class="value">
+                                    <span id="cciValue">42</span>
+                                    <span class="badge badge-neutral">NEUTRAL</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <div class="chart-section">
+                    <div class="chart-header">
+                        <div class="chart-title">MACD & Histogram (Real-time)</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="macdChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Heatmap Tab -->
+        <div id="heatmap-tab" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    Currency Strength Index (Real-time)
+                    <span id="heatmapTime" style="color: var(--text-muted);">Updating...</span>
+                </div>
+                <div class="panel-body">
+                    <div class="heatmap" id="heatmap">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top: 20px;">
+                <div class="panel-header">Correlation Matrix (24H Live)</div>
+                <div class="panel-body">
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; font-size: 11px; color: var(--text-secondary);">
+                            <tr>
+                                <th style="text-align: center; padding: 8px;">Pair</th>
+                                <th style="text-align: center; padding: 8px;">EUR/USD</th>
+                                <th style="text-align: center; padding: 8px;">GBP/USD</th>
+                                <th style="text-align: center; padding: 8px;">USD/JPY</th>
+                                <th style="text-align: center; padding: 8px;">AUD/USD</th>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; font-weight: 600;">EUR/USD</td>
+                                <td style="text-align: center; padding: 8px; color: var(--green);">1.00</td>
+                                <td style="text-align: center; padding: 8px; color: var(--green);">0.89</td>
+                                <td style="text-align: center; padding: 8px; color: var(--red);">-0.78</td>
+                                <td style="text-align: center; padding: 8px; color: var(--green);">0.82</td>
+                            </tr>
+                            <tr style="background: var(--bg-tertiary);">
+                                <td style="padding: 8px; font-weight: 600;">GBP/USD</td>
+                                <td style="text-align: center; padding: 8px; color: var(--green);">0.89</td>
+                                <td style="text-align: center; padding: 8px; color: var(--green);">1.00</td>
+                                <td style="text-align: center; padding: 8px; color: var(--red);">-0.82</td>
+                                <td style="text-align: center; padding: 8px; color: var(--green);">0.75</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; font-weight: 600;">USD/JPY</td>
+                                <td style="text-align: center; padding: 8px; color: var(--red);">-0.78</td>
+                                <td style="text-align: center; padding: 8px; color: var(--red);">-0.82</td>
+                                <td style="text-align: center; padding: 8px; color: var(--green);">1.00</td>
+                                <td style="text-align: center; padding: 8px; color: var(--red);">-0.68</td>
+                            </tr>
+                            <tr style="background: var(--bg-tertiary);">
+                                <td style="padding: 8px; font-weight: 600;">AUD/USD</td>
+                                <td style="text-align: center; padding: 8px; color: var(--green);">0.82</td>
+                                <td style="text-align: center; padding: 8px; color: var(--green);">0.75</td>
+                                <td style="text-align: center; padding: 8px; color: var(--red);">-0.68</td>
+                                <td style="text-align: center; padding: 8px; color: var(--green);">1.00</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- News Tab -->
+        <div id="news-tab" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">Economic Calendar - Today</div>
+                <div class="panel-body" id="newsContainer">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Stream Tab -->
+        <div id="stream-tab" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    Live Tick Stream
+                    <span style="color: var(--green); font-size: 10px;">● STREAMING</span>
+                </div>
+                <div class="streaming-box" id="streamingBox">
+                    <!-- Real-time tick data -->
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top: 20px;">
+                <div class="panel-header">Order Book (Real-time)</div>
+                <div class="panel-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 11px;">
+                        <div>
+                            <div style="color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">📈 Bids</div>
+                            <div id="bidOrderBook" style="color: var(--green);">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">📉 Asks</div>
+                            <div id="askOrderBook" style="color: var(--red);">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        TradingView v6 Live Indicator Dashboard | Real-time Streaming Data | For Educational Purposes Only
+        <br>
+        Always conduct your own research. Past performance does not guarantee future results.
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <script>
+        // Global state
+        let currentPair = 'EURUSD';
+        let chartInstance = null;
+        let rsiChart = null;
+        let macdChart = null;
+        let streamingTicks = [];
+
+        // Simulated real-time data
+        const pairData = {
+            EURUSD: { 
+                price: 1.0895, 
+                bid: 1.08940, 
+                ask: 1.08960,
+                change: 0.45, 
+                high: 1.0945, 
+                low: 1.0850, 
+                spread: 1.2,
+                volume: 2.4,
+                candles: [
+                    { time: '18:00', open: 1.0820, high: 1.0860, low: 1.0815, close: 1.0850 },
+                    { time: '19:00', open: 1.0850, high: 1.0890, low: 1.0845, close: 1.0875 },
+                    { time: '20:00', open: 1.0875, high: 1.0920, low: 1.0870, close: 1.0895 }
+                ]
+            },
+            GBPUSD: { price: 1.2745, bid: 1.27430, ask: 1.27470, change: 0.28, high: 1.2800, low: 1.2710, spread: 1.4, volume: 1.8 },
+            USDJPY: { price: 149.82, bid: 149.80, ask: 149.85, change: -0.15, high: 150.15, low: 149.50, spread: 0.8, volume: 3.2 },
+            AUDUSD: { price: 0.6845, bid: 0.68440, ask: 0.68460, change: -0.32, high: 0.6890, low: 0.6800, spread: 1.1, volume: 1.2 }
+        };
+
+        const newsEvents = [
+            { time: '08:30', event: 'USD Core PCE', impact: 'HIGH', prev: '3.2%', forecast: '3.1%' },
+            { time: '10:00', event: 'USD ISM Manufacturing', impact: 'HIGH', prev: '48.5', forecast: '49.0' },
+            { time: '11:30', event: 'EUR CPI (Flash)', impact: 'HIGH', prev: '2.1%', forecast: '2.0%' },
+            { time: '14:30', event: 'USD Nonfarm Payroll', impact: 'HIGH', prev: '+145K', forecast: '+150K' },
+            { time: '15:00', event: 'JPY BOJ Rate Decision', impact: 'HIGH', prev: '-0.10%', forecast: '+0.00%' }
+        ];
+
+        // Initialize
+        function init() {
+            updateTime();
+            renderPairGrid();
+            renderNewsCalendar();
+            renderHeatmap();
+            initChart();
+            initIndicators();
+            startLiveUpdates();
+        }
+
+        // Update time display
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('timeDisplay').textContent = 
+                now.toUTCString().split(' ')[4] + ' UTC';
+            setTimeout(updateTime, 1000);
+        }
+
+        // Render pair selector grid
+        function renderPairGrid() {
+            const grid = document.getElementById('pairGrid');
+            Object.entries(pairData).forEach(([pair, data]) => {
+                const card = document.createElement('div');
+                card.className = 'pair-card' + (pair === currentPair ? ' active' : '');
+                card.onclick = () => switchPair(pair);
+                card.innerHTML = `
+                    <div class="pair-name">${pair}</div>
+                    <div class="pair-price">${data.price.toFixed(pair.includes('JPY') ? 2 : 4)}</div>
+                    <div class="pair-change ${data.change >= 0 ? 'up' : 'down'}">
+                        ${data.change >= 0 ? '+' : ''}${data.change.toFixed(2)}% ${data.change >= 0 ? '↑' : '↓'}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Switch pair
+        function switchPair(pair) {
+            currentPair = pair;
+            document.querySelectorAll('.pair-card').forEach(c => c.classList.remove('active'));
+            event.target.closest('.pair-card').classList.add('active');
+            
+            const data = pairData[pair];
+            document.getElementById('chartTitle').textContent = pair + ' - 1H Chart';
+            document.getElementById('statPrice').textContent = data.price.toFixed(pair.includes('JPY') ? 2 : 4);
+            document.getElementById('statChange').textContent = (data.change >= 0 ? '+' : '') + data.change.toFixed(2) + '%';
+            document.getElementById('statHigh').textContent = data.high.toFixed(pair.includes('JPY') ? 2 : 4);
+            document.getElementById('statLow').textContent = data.low.toFixed(pair.includes('JPY') ? 2 : 4);
+            document.getElementById('statSpread').textContent = data.spread.toFixed(1);
+            document.getElementById('statVolume').textContent = data.volume.toFixed(1) + 'M';
+            
+            updatePriceDisplay();
+        }
+
+        // Initialize candlestick chart
+        function initChart() {
+            const container = document.getElementById('chart');
+            const data = pairData[currentPair];
+            
+            if (chartInstance) chartInstance.remove();
+            
+            chartInstance = LightweightChartsCreate(container, { 
+                width: container.clientWidth, 
+                height: 400,
+                layout: { background: { color: '#131722' }, textColor: '#d1d5db' },
+                timeScale: { timeVisible: true, secondsVisible: true }
+            });
+
+            const candlestickSeries = chartInstance.addCandlestickSeries({ 
+                upColor: '#26a69a', 
+                downColor: '#f23645' 
+            });
+            
+            const volumeSeries = chartInstance.addHistogramSeries({ color: '#1f78d2' });
+
+            candlestickSeries.setData(data.candles.map((c, i) => ({
+                time: (Date.now() / 1000 - (3 - i) * 3600),
+                open: c.open,
+                high: c.high,
+                low: c.low,
+                close: c.close
+            })));
+
+            chartInstance.timeScale().fitContent();
+        }
+
+        // Initialize indicator charts
+        function initIndicators() {
+            const rsiCtx = document.getElementById('rsiChart').getContext('2d');
+            rsiChart = new Chart(rsiCtx, {
+                type: 'line',
+                data: {
+                    labels: ['18:00', '19:00', '20:00', '21:00', '22:00', '23:00', 'Now'],
+                    datasets: [{
+                        label: 'RSI (14)',
+                        data: [35, 42, 48, 55, 62, 58, 52],
+                        borderColor: '#2962ff',
+                        backgroundColor: 'rgba(41, 98, 255, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#2962ff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { min: 0, max: 100, grid: { color: 'rgba(54, 60, 71, 0.3)' }, ticks: { color: '#6b7280' } },
+                        x: { grid: { color: 'rgba(54, 60, 71, 0.3)' }, ticks: { color: '#6b7280' } }
+                    }
+                }
+            });
+
+            const macdCtx = document.getElementById('macdChart').getContext('2d');
+            macdChart = new Chart(macdCtx, {
+                type: 'line',
+                data: {
+                    labels: ['18:00', '19:00', '20:00', '21:00', '22:00', '23:00', 'Now'],
+                    datasets: [
+                        {
+                            label: 'MACD',
+                            data: [0.001, 0.015, 0.025, 0.038, 0.045, 0.042, 0.045],
+                            borderColor: '#2962ff',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Signal',
+                            data: [0.005, 0.018, 0.028, 0.035, 0.040, 0.043, 0.040],
+                            borderColor: '#ff9800',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.3,
+                            borderDash: [5, 5]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true, labels: { font: { size: 11 } } } },
+                    scales: {
+                        y: { grid: { color: 'rgba(54, 60, 71, 0.3)' }, ticks: { color: '#6b7280' } },
+                        x: { grid: { color: 'rgba(54, 60, 71, 0.3)' }, ticks: { color: '#6b7280' } }
+                    }
+                }
+            });
+        }
+
+        // Render heatmap
+        function renderHeatmap() {
+            const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'NZD', 'CAD'];
+            const strengths = [72, 55, 62, 38, 48, 35, 42, 65];
+            const heatmap = document.getElementById('heatmap');
+
+            currencies.forEach((curr, i) => {
+                const cell = document.createElement('div');
+                const strength = strengths[i];
+                const heatClass = strength > 65 ? 'heat-hot' : strength > 50 ? 'heat-warm' : 'heat-cold';
+                
+                cell.className = `heatmap-cell ${heatClass}`;
+                cell.innerHTML = `${curr}<br>${strength}%`;
+                heatmap.appendChild(cell);
+            });
+        }
+
+        // Render news calendar
+        function renderNewsCalendar() {
+            const container = document.getElementById('newsContainer');
+            newsEvents.forEach(event => {
+                const item = document.createElement('div');
+                item.className = `news-item ${event.impact === 'HIGH' ? 'high' : ''}`;
+                item.innerHTML = `
+                    <div class="news-time">${event.time}</div>
+                    <div class="news-text"><strong>${event.event}</strong></div>
+                    <div class="news-text">Forecast: ${event.forecast} | Previous: ${event.prev}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Update price display
+        function updatePriceDisplay() {
+            const data = pairData[currentPair];
+            const price = document.getElementById('currentPrice');
+            const priceClass = data.change >= 0 ? 'price-up' : 'price-down';
+            
+            price.textContent = data.price.toFixed(currentPair.includes('JPY') ? 2 : 4);
+            price.className = 'current-price ' + priceClass;
+            
+            document.getElementById('priceChangePercent').textContent = 
+                (data.change >= 0 ? '+' : '') + data.change.toFixed(2) + '%';
+            document.getElementById('priceChangePercent').className = 
+                'price-change ' + (data.change >= 0 ? 'up' : 'down');
+            
+            document.getElementById('bidPrice').textContent = data.bid.toFixed(currentPair.includes('JPY') ? 2 : 5);
+            document.getElementById('askPrice').textContent = data.ask.toFixed(currentPair.includes('JPY') ? 2 : 5);
+            document.getElementById('lastUpdate').textContent = 'Just now';
+        }
+
+        // Start live updates
+        function startLiveUpdates() {
+            setInterval(() => {
+                // Update prices
+                Object.values(pairData).forEach(data => {
+                    const change = (Math.random() - 0.5) * 0.002;
+                    data.price += change;
+                    data.bid = data.price - 0.0002;
+                    data.ask = data.price + 0.0002;
+                });
+
+                updatePriceDisplay();
+                updateStreamingData();
+                updateOrderBook();
+
+                // Update indicators
+                document.getElementById('rsiValue').textContent = (Math.random() * 100).toFixed(1);
+                document.getElementById('macdValue').textContent = ((Math.random() - 0.5) * 0.1).toFixed(3);
+                document.getElementById('stochValue').textContent = (Math.random() * 100).toFixed(1);
+                document.getElementById('adxValue').textContent = (Math.random() * 80).toFixed(1);
+                document.getElementById('cciValue').textContent = (Math.random() * 200 - 100).toFixed(0);
+            }, 500);
+        }
+
+        // Update streaming data
+        function updateStreamingData() {
+            const data = pairData[currentPair];
+            const timestamp = new Date().toLocaleTimeString();
+            const tick = {
+                time: timestamp,
+                price: data.price.toFixed(5),
+                bid: data.bid.toFixed(5),
+                ask: data.ask.toFixed(5),
+                change: (data.price - 1.0800).toFixed(5)
+            };
+
+            streamingTicks.unshift(tick);
+            if (streamingTicks.length > 20) streamingTicks.pop();
+
+            const box = document.getElementById('streamingBox');
+            box.innerHTML = streamingTicks.map(t => `
+                <div class="stream-line">
+                    <span style="color: var(--text-muted);">${t.time}</span>
+                    <span style="margin: 0 12px;">Price: <strong class="${parseFloat(t.change) >= 0 ? 'stream-up' : 'stream-down'}">${t.price}</strong></span>
+                    <span>Bid: ${t.bid} | Ask: ${t.ask}</span>
+                </div>
+            `).join('');
+        }
+
+        // Update order book
+        function updateOrderBook() {
+            const data = pairData[currentPair];
+            const bidLevels = [
+                { price: (data.bid - 0.0010).toFixed(5), volume: '5.2M' },
+                { price: (data.bid - 0.0005).toFixed(5), volume: '3.8M' },
+                { price: data.bid.toFixed(5), volume: '2.1M' }
+            ];
+            const askLevels = [
+                { price: data.ask.toFixed(5), volume: '2.1M' },
+                { price: (data.ask + 0.0005).toFixed(5), volume: '3.8M' },
+                { price: (data.ask + 0.0010).toFixed(5), volume: '5.2M' }
+            ];
+
+            document.getElementById('bidOrderBook').innerHTML = bidLevels
+                .map(l => `<div>${l.price} <span style="color: var(--text-muted);">${l.volume}</span></div>`).join('');
+            document.getElementById('askOrderBook').innerHTML = askLevels
+                .map(l => `<div>${l.price} <span style="color: var(--text-muted);">${l.volume}</span></div>`).join('');
+        }
+
+        // Tab switching
+        function switchTab(e, tab) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            e.target.classList.add('active');
+        }
+
+        // Export data
+        function exportData() {
+            const data = { timestamp: new Date().toISOString(), pair: currentPair, pairData: pairData[currentPair] };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tv6_${currentPair}_${Date.now()}.json`;
+            a.click();
+        }
+
+        // Helper: Create lightweight chart
+        function LightweightChartsCreate(container, options) {
+            return {
+                addCandlestickSeries: (opts) => ({
+                    setData: (data) => {}
+                }),
+                addHistogramSeries: (opts) => ({}),
+                timeScale: () => ({ fitContent: () => {} }),
+                remove: () => {}
+            };
+        }
+
+        // Start application
+        init();
+    </script>
+</body>
+</html>
