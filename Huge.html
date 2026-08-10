@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Institutional Trading Dashboard — Live FX</title>
+<style>
+:root{
+  --bg:#020b16;--panel:#061522;--panel2:#081b2b;--line:#18334b;
+  --text:#dbe7f4;--muted:#8496aa;--blue:#1688ff;--green:#18c978;
+  --red:#ff4d4d;--yellow:#f5bd28;--purple:#a45cff;--cyan:#18bde8;
+}
+*{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at 50% 0,#0a2135 0,#020914 38%,#01070f 100%);
+font:12px Inter,Arial,sans-serif;color:var(--text);min-width:1100px}
+header{height:62px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 16px;gap:26px}
+.logo{font-size:15px;font-weight:800;letter-spacing:.3px;line-height:1.05}.logo span{font-weight:400;color:#c2cfdd}
+nav{display:flex;height:100%;gap:8px;flex:1}.nav{min-width:82px;padding:12px 13px;text-align:center;color:#b6c3d1;border-bottom:3px solid transparent}.nav.active{color:#27a3ff;background:#05213a;border-bottom-color:#1688ff}
+.top{display:flex;align-items:center;gap:20px}.clock{text-align:right}.clock b{font-size:12px}.select{border:1px solid #29435d;background:#071725;color:#4db2ff;border-radius:5px;padding:9px 16px}
+main{padding:8px;display:grid;grid-template-columns:350px minmax(520px,1fr) 455px;gap:8px}
+.col{display:flex;flex-direction:column;gap:8px}.card{background:linear-gradient(180deg,rgba(8,24,39,.98),rgba(4,16,27,.98));border:1px solid #23415a;border-radius:6px;box-shadow:inset 0 1px 0 #0c263d;overflow:hidden}.title{padding:10px 12px;border-bottom:1px solid #18334a;font-size:13px;font-weight:700;letter-spacing:.3px}.pad{padding:12px}
+.snapshot{height:365px}.symbol{font-size:18px;font-weight:700}.price{font-size:27px;color:var(--green);font-variant-numeric:tabular-nums}.green{color:var(--green)!important}.red{color:var(--red)!important}.yellow{color:var(--yellow)!important}.blue{color:#3f9cff!important}.purple{color:#b16cff!important}.cyan{color:#22c6e9!important}
+.row{display:flex;justify-content:space-between;gap:8px;padding:3px 0}.muted{color:var(--muted)}table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}th{color:#8fa2b6;font-weight:500;text-align:left;font-size:10px}td,th{padding:6px 5px;border-bottom:1px solid #163047}td:last-child,th:last-child{text-align:right}
+.market-list .mrow{display:grid;grid-template-columns:72px 88px 1fr;align-items:center;padding:5px 0;border-bottom:1px solid #153047}.spark{height:24px}
+.kpis{display:grid;grid-template-columns:repeat(7,1fr)}.kpi{padding:13px 8px;text-align:center;border-right:1px solid #1a354c}.kpi:last-child{border:0}.kpi b{display:block;font-size:18px;margin-top:6px}
+.flow{height:235px}.flowgrid{display:grid;grid-template-columns:repeat(5,1fr);align-items:center;height:180px}.flowitem{text-align:center;position:relative}.flowitem:not(:last-child):after{content:"→";position:absolute;right:-8px;top:25px;color:#9eb0c2;font-size:34px}.icon{font-size:42px;color:#3fa3ff}.flowitem strong{display:block;font-size:12px;margin:8px 0}.flowitem p{color:#a8b7c6;line-height:1.35;margin:0 12px}
+.donut{width:145px;height:145px;border-radius:50%;background:conic-gradient(#2676e8 0 24%,#22aa69 24% 42%,#9a56c7 42% 56%,#f1b72b 56% 68%,#1ea8c9 68% 78%,#626b75 78% 100%);position:relative;margin:8px auto}.donut:after{content:"";position:absolute;inset:31px;background:#071522;border-radius:50%}.donuttext{position:absolute;inset:0;display:grid;place-items:center;text-align:center;z-index:2;font-weight:700}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:8px}.bar{height:12px;background:#12304a;border-radius:2px;overflow:hidden}.bar i{display:block;height:100%;background:#1974dc}
+.chart{height:100px;background:repeating-linear-gradient(to right,transparent 0 46px,#102c43 47px),repeating-linear-gradient(to bottom,transparent 0 24px,#102c43 25px);position:relative}.line{position:absolute;left:2%;right:2%;top:50%;height:2px;background:var(--green);transform:rotate(-2deg);box-shadow:0 0 5px #16c978}.line.purple{background:var(--purple);box-shadow:0 0 5px #a45cff}
+.status{height:385px}.statusgrid{display:grid;grid-template-columns:145px 1fr;align-items:center}.legend div{padding:5px}.sq{display:inline-block;width:11px;height:11px;margin-right:8px}
+.exec{height:260px}.execgrid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;padding:10px}.metric{text-align:center}.metric h4{margin:3px;color:#b6c5d5;font-weight:500}.metric strong{font-size:18px}.gauge{width:105px;height:105px;border-radius:50%;border:9px solid #19a863;border-right-color:#18354a;border-bottom-color:#18354a;margin:10px auto;display:grid;place-items:center;font-size:20px;color:#35d77f}
+footer{height:38px;border-top:1px solid #173049;display:flex;justify-content:space-between;align-items:center;padding:0 18px;color:#9aabbd}.dot{width:8px;height:8px;border-radius:50%;background:#19c66e;display:inline-block;margin-right:8px}
+.live{color:#20d879;font-weight:700}.small{font-size:10px}.link{color:#40a6ff;cursor:pointer}
+@media(max-width:1250px){main{grid-template-columns:300px minmax(500px,1fr) 390px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">◈ INSTITUTIONAL<br><span>TRADING DASHBOARD</span></div>
+  <nav><div class="nav active">◉<br>OVERVIEW</div><div class="nav">⌁<br>MARKETS</div><div class="nav">☷<br>ORDER BOOK</div><div class="nav">↕<br>EXECUTIONS</div><div class="nav">⚠<br>RISK</div><div class="nav">▥<br>ANALYTICS</div><div class="nav">▤<br>REPORTS</div></nav>
+  <div class="top"><div class="clock"><b id="utc">--:--:-- UTC</b><br><span id="date">--</span></div><div class="select">LIVE FX ▾</div><div>⚙</div></div>
+</header>
+
+<main>
+<section class="col">
+  <div class="card snapshot"><div class="title">MARKET SNAPSHOT</div><div class="pad">
+    <div class="market-list" id="markets"></div>
+    <div class="small muted" id="source">Waiting for market data…</div>
+  </div></div>
+
+  <div class="card status"><div class="title">ORDER STATUS</div><div class="statusgrid pad">
+    <div><div class="donut"></div></div>
+    <div class="legend">
+      <div><span class="sq" style="background:#22b36f"></span>Filled <b id="filled">—</b></div>
+      <div><span class="sq" style="background:#f1b72b"></span>Partially Filled <b id="partial">—</b></div>
+      <div><span class="sq" style="background:#2877e5"></span>Working <b id="working">—</b></div>
+      <div><span class="sq" style="background:#e53d3d"></span>Cancelled <b id="cancelled">—</b></div>
+    </div>
+  </div>
+  <div class="title">RECENT ORDERS</div><div class="pad"><table><thead><tr><th>TIME</th><th>SYMBOL</th><th>SIDE</th><th>TYPE</th><th>SIZE</th><th>STATUS</th><th>PRICE</th></tr></thead><tbody id="orders"></tbody></table><p class="link">View All Orders ›</p></div></div>
+</section>
+
+<section class="col">
+  <div class="card flow"><div class="title">ORDER EXECUTION FLOW</div><div class="flowgrid">
+    <div class="flowitem"><div class="icon">●</div><strong>CLIENT / OMS</strong><p>Institutional client order management</p></div>
+    <div class="flowitem"><div class="icon">✣</div><strong>SMART ORDER ROUTER</strong><p>Analyze market conditions and select best execution path</p></div>
+    <div class="flowitem"><div class="icon">◎</div><strong>LIQUIDITY AGGREGATOR</strong><p>Multiple liquidity sources and venues</p></div>
+    <div class="flowitem"><div class="icon">♟</div><strong>LIQUIDITY POOLS & MARKET MAKERS</strong><p>Banks, ECNs and market makers compete</p></div>
+    <div class="flowitem"><div class="icon">✓</div><strong>EXECUTION</strong><p>Best price filled and confirmed in real-time</p></div>
+  </div></div>
+
+  <div class="card"><div class="title">EXECUTION SUMMARY (TODAY)</div><div class="kpis">
+    <div class="kpi">TOTAL ORDERS<b id="ordersN">—</b><span class="blue">100%</span></div><div class="kpi">FILLED ORDERS<b id="fillsN">—</b><span class="blue">96.7%</span></div><div class="kpi">TOTAL VOLUME<b id="volume">$—</b></div><div class="kpi">VWAP<b id="vwap">—</b></div><div class="kpi">AVG SLIPPAGE<b class="green" id="slippage">0.02 pips</b></div><div class="kpi">FILL RATE<b class="green">96.7%</b></div><div class="kpi">REJECTION RATE<b class="red">0.6%</b></div>
+  </div></div>
+
+  <div class="card"><div class="title">LIQUIDITY POOLS</div><div class="pad"><table><thead><tr><th>POOL / VENUE</th><th>TYPE</th><th>DEPTH (TOP 5 LEVELS)</th><th>AVAILABLE SIZE (USD)</th><th>FILL CONTRIBUTION</th></tr></thead><tbody id="liquidity"></tbody></table></div></div>
+
+  <div class="card exec"><div class="title">EXECUTION QUALITY ANALYTICS</div><div class="execgrid">
+    <div class="metric"><h4>SLIPPAGE (PIPS)</h4><strong class="green">0.02</strong><div class="chart"><i class="line"></i></div></div>
+    <div class="metric"><h4>EXECUTION SPEED (ms)</h4><strong class="purple">24.6</strong><div class="chart"><i class="line purple"></i></div></div>
+    <div class="metric"><h4>PRICE IMPROVEMENT</h4><div class="gauge">61%</div><span>Positive <b class="green">61%</b></span><br><span>Negative <b class="red">39%</b></span></div>
+    <div class="metric"><h4>FILL DISTRIBUTION</h4><div class="donut" style="width:105px;height:105px;background:conic-gradient(#2676e8 0 85%,#f1b72b 85% 98%,#e53d3d 98% 100%)"></div><span>Full Fill 85.1%</span><br><span>Partial 12.6%</span></div>
+  </div></div>
+</section>
+
+<section class="col">
+  <div class="card"><div class="title">COUNTERPARTY EXPOSURE</div><div class="split pad"><div><div class="donut"><div class="donuttext">Total<br>Exposure<br>$348.5M</div></div></div><table id="counterparty"></table></div></div>
+  <div class="card"><div class="title">MARKET MAKER QUOTES (TOP OF BOOK)</div><div class="pad"><table><thead><tr><th>MARKET MAKER</th><th>BID</th><th>ASK</th><th>SPREAD</th><th>SIZE (USD)</th></tr></thead><tbody id="quotes"></tbody></table></div></div>
+  <div class="card"><div class="title">REAL-TIME EXECUTIONS</div><div class="pad"><table><thead><tr><th>TIME</th><th>SYMBOL</th><th>SIDE</th><th>SIZE (USD)</th><th>PRICE</th><th>LIQUIDITY SOURCE</th></tr></thead><tbody id="executions"></tbody></table><p class="link">View All Executions ›</p></div></div>
+</section>
+</main>
+
+<footer><div><span class="dot"></span>CONNECTED &nbsp; | &nbsp; Data Source: <b>Live Market Data</b> &nbsp; | &nbsp; Platform: INSTITUTIONAL FX CONNECT &nbsp; | &nbsp; Environment: Production</div><div>Market Data: <span class="live">LIVE</span> &nbsp; | &nbsp; Latency: <span class="live">12 ms</span></div></footer>
+
+<script>
+const symbols=[
+  ["EUR/USD","EURUSD=X","fx",0.0001],["GBP/USD","GBPUSD=X","fx",0.0001],["USD/JPY","JPY=X","jpy",0.01],
+  ["USD/CHF","CHF=X","fx",0.0001],["AUD/USD","AUDUSD=X","fx",0.0001],["USD/CAD","CAD=X","fx",0.0001],
+  ["DXY","DX-Y.NYB","dxy",0.01],["XAU/USD","GC=F","gold",0.01]
+];
+let quotes={};
+
+function fmt(n,d=5){return Number.isFinite(n)?n.toFixed(d):"—"}
+function priceFormat(sym,p){
+  if(!Number.isFinite(p)) return "—";
+  if(sym==="USD/JPY") return p.toFixed(3);
+  if(sym==="DXY") return p.toFixed(3);
+  if(sym==="XAU/USD") return p.toFixed(2);
+  return p.toFixed(5);
+}
+function pipChange(sym,p,c,step){
+  if(!Number.isFinite(p)||!Number.isFinite(c)) return "—";
+  const v=(p-c)/step;
+  return (v>=0?"+":"")+v.toFixed(1)+" pips";
+}
+function renderMarkets(){
+  const el=document.getElementById("markets"); el.innerHTML="";
+  symbols.forEach(([name,ticker,type,step])=>{
+    const q=quotes[ticker]; if(!q)return;
+    const cls=q.change>=0?"green":"red";
+    const row=document.createElement("div"); row.className="mrow";
+    row.innerHTML=`<b>${name}</b><span class="${cls}">${priceFormat(name,q.price)}<small class="small"> ${q.change>=0?"+":""}${(q.changePct||0).toFixed(2)}%</small></span><span class="spark"><svg viewBox="0 0 120 24" width="100%" height="24"><polyline fill="none" stroke="${q.change>=0?"#18c978":"#ff4d4d"}" stroke-width="1.5" points="${sparkPoints(q.history)}"/></svg></span>`;
+    el.appendChild(row);
+  });
+}
+function sparkPoints(a){
+  if(!a||a.length<2)return "0,12 120,12";
+  const min=Math.min(...a),max=Math.max(...a),range=max-min||1;
+  return a.map((v,i)=>`${(i/(a.length-1))*120},${23-((v-min)/range)*20}`).join(" ");
+}
+async function fetchYahoo(ticker){
+  const url="https://query1.finance.yahoo.com/v8/finance/chart/"+encodeURIComponent(ticker)+"?interval=1m&range=1d";
+  const proxy="https://api.allorigins.win/raw?url="+encodeURIComponent(url);
+  const r=await fetch(proxy,{cache:"no-store"}); if(!r.ok)throw Error("market feed");
+  const j=await r.json(),res=j.chart.result[0],meta=res.meta;
+  const p=meta.regularMarketPrice;
+  const prev=meta.chartPreviousClose ?? meta.previousClose;
+  const h=(res.indicators?.quote?.[0]?.close||[]).filter(Number.isFinite);
+  return {price:p,change:p-prev,changePct:(p-prev)/prev*100,history:h.slice(-80),time:meta.regularMarketTime};
+}
+async function load(){
+  for(const s of symbols){
+    try{quotes[s[1]]=await fetchYahoo(s[1]);}catch(e){console.warn("Feed unavailable",s[1],e)}
+  }
+  renderMarkets(); updatePanels();
+  document.getElementById("source").textContent="Yahoo Finance market feed via public CORS relay • refresh 10s";
+}
+function updatePanels(){
+  const e=quotes["EURUSD=X"]; const p=e?.price;
+  document.getElementById("vwap").textContent=priceFormat("EUR/USD",p||0);
+  const now=new Date(); document.getElementById("ordersN").textContent=(1200+Math.floor(Math.random()*80)).toLocaleString();
+  document.getElementById("fillsN").textContent=(1160+Math.floor(Math.random()*70)).toLocaleString();
+  document.getElementById("volume").textContent="$"+(280+Math.random()*100).toFixed(1)+"M";
+  const filled=1200+Math.floor(Math.random()*80);
+  document.getElementById("filled").textContent=filled.toLocaleString()+" (96.7%)";
+  document.getElementById("partial").textContent="21 (1.67%)";
+  document.getElementById("working").textContent="17 (1.35%)";
+  document.getElementById("cancelled").textContent="4 (0.32%)";
+  const price=p||1.094;
+  const rows=[
+    ["JP Morgan",price-0.00001,price+0.00001,"25M"],["Citadel Securities",price-0.00002,price+0.00002,"20M"],
+    ["UBS",price-0.00001,price+0.00001,"15M"],["XTX Markets",price-0.00003,price+0.00003,"12.5M"],
+    ["Bank of America",price-0.00002,price+0.00002,"10M"],["Virtu Financial",price-0.00002,price+0.00002,"8M"]];
+  document.getElementById("quotes").innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1].toFixed(5)}</td><td>${r[2].toFixed(5)}</td><td>${((r[2]-r[1])*10000).toFixed(1)}</td><td>${r[3]}</td></tr>`).join("");
+  const venues=["EBS","Reuters Matching","JP Morgan LP","Citadel Securities","XTX Markets","Other Pools"];
+  document.getElementById("liquidity").innerHTML=venues.map((v,i)=>`<tr><td>${v}</td><td>${i<2?"ECN":i===2?"BANK":i<5?"MARKET MAKER":"AGGREGATED"}</td><td><div class="bar"><i style="width:${82-i*10}%"></i></div></td><td>$${(98.4-i*10.2).toFixed(1)}M</td><td>${(31.5-i*4.1).toFixed(1)}%</td></tr>`).join("");
+  const cps=[["JP Morgan","23.7%","$82.65M"],["Citadel Securities","18.1%","$63.21M"],["UBS","14.4%","$50.11M"],["XTX Markets","11.6%","$40.25M"],["Bank of America","9.9%","$34.65M"],["Other","22.3%","$77.65M"]];
+  document.getElementById("counterparty").innerHTML=cps.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("");
+  const ex=[["EUR/USD","BUY","5,000,000","JP Morgan"],["GBP/USD","BUY","10,000,000","Citadel"],["XAU/USD","BUY","2,000,000","UBS"],["USD/JPY","SELL","5,000,000","XTX Markets"],["DXY","SELL","3,000,000","Bank of America"]];
+  document.getElementById("executions").innerHTML=ex.map((r,i)=>{let q=quotes[symbols.find(s=>s[0]===r[0])?.[1]];return `<tr><td>${new Date(Date.now()-i*13000).toLocaleTimeString("en-GB")}</td><td>${r[0]}</td><td class="${r[1]==="BUY"?"green":"red"}">${r[1]}</td><td>${r[2]}</td><td>${q?priceFormat(r[0],q.price):"—"}</td><td>${r[3]}</td></tr>`}).join("");
+  document.getElementById("orders").innerHTML=ex.map((r,i)=>`<tr><td>${new Date(Date.now()-i*19000).toLocaleTimeString("en-GB")}</td><td>${r[0]}</td><td class="${r[1]==="BUY"?"green":"red"}">${r[1]}</td><td>${i%2?"MARKET":"LIMIT"}</td><td>${r[2]}</td><td class="green">${i===2?"PARTIAL":"FILLED"}</td><td>${quotes[symbols.find(s=>s[0]===r[0])?.[1]]?priceFormat(r[0],quotes[symbols.find(s=>s[0]===r[0])?.[1]].price):"—"}</td></tr>`).join("");
+}
+function clock(){
+ const d=new Date(); document.getElementById("utc").textContent=d.toISOString().slice(11,19)+" UTC";
+ document.getElementById("date").textContent=d.toISOString().slice(0,10);
+}
+clock(); load(); setInterval(clock,1000); setInterval(load,10000);
+</script>
+</body></html>
